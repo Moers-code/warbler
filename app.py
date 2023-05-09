@@ -3,9 +3,9 @@ import os
 from flask import Flask, render_template, request, flash, redirect, session, g
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import and_
+from sqlalchemy import and_, select
 from forms import UserAddForm, LoginForm, MessageForm, UserEditForm
-from models import db, connect_db, User, Message, Follows
+from models import db, connect_db, User, Message, Follows, Likes
 from flask_migrate import Migrate
 
 CURR_USER_KEY = "curr_user"
@@ -154,6 +154,8 @@ def users_show(user_id):
                 .order_by(Message.timestamp.desc())
                 .limit(100)
                 .all())
+
+    
     return render_template('users/show.html', user=user, messages=messages)
 
 
@@ -322,17 +324,36 @@ def homepage():
     """
 
     if g.user:
-        user_messages = g.user.messages
+        likes = [like.message_id for like in Likes.query.all()]
         following_ids = [user.id for user in g.user.following]
         followers_ids = [user.id for user in g.user.followers]
         messages = Message.query.filter((Message.user_id.in_(following_ids)) |
         (Message.user_id.in_(followers_ids)) |
         (Message.user_id == g.user.id)).order_by(Message.timestamp.desc()).limit(100).all()
-
-        return render_template('home.html', messages=messages)
+        
+        return render_template('home.html', likes=likes, messages=messages)
 
     else:
         return render_template('home-anon.html')
+
+##############################################################################
+# Likes Routes
+
+@app.route('/users/add_like/<int:message_id>', methods=['POST'])
+def add_like(message_id):
+    if g.user:
+        message = Message.query.get_or_404(message_id)
+        like = Likes.query.filter_by(user_id=g.user.id, message_id=message_id).first()
+
+        if not like:
+            new_like = Likes(user_id=g.user.id, message_id=message_id)
+            db.session.add(new_like)
+            db.session.commit()
+            return redirect('/')
+        else:
+            db.session.delete(like)
+            db.session.commit()
+            return redirect('/')
 
 
 ##############################################################################
@@ -351,3 +372,4 @@ def add_header(req):
     req.headers["Expires"] = "0"
     req.headers['Cache-Control'] = 'public, max-age=0'
     return req
+
