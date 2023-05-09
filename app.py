@@ -346,9 +346,13 @@ def add_like(message_id):
         like = Likes.query.filter_by(user_id=g.user.id, message_id=message_id).first()
 
         if not like:
-            new_like = Likes(user_id=g.user.id, message_id=message_id)
-            db.session.add(new_like)
-            db.session.commit()
+            if message.user_id != g.user.id:
+                new_like = Likes(user_id=g.user.id, message_id=message_id)
+                db.session.add(new_like)
+                db.session.commit()
+                
+            else:
+                flash('You cant like your own posts')
             return redirect('/')
         else:
             db.session.delete(like)
