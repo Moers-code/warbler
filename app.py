@@ -3,9 +3,9 @@ import os
 from flask import Flask, render_template, request, flash, redirect, session, g
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
-
+from sqlalchemy import and_
 from forms import UserAddForm, LoginForm, MessageForm, UserEditForm
-from models import db, connect_db, User, Message
+from models import db, connect_db, User, Message, Follows
 from flask_migrate import Migrate
 
 CURR_USER_KEY = "curr_user"
@@ -322,12 +322,12 @@ def homepage():
     """
 
     if g.user:
-        messages = g.user.messages
-        # messages = (Message
-        #             .query
-        #             .order_by(Message.timestamp.desc())
-        #             .limit(100)
-        #             .all())
+        user_messages = g.user.messages
+        following_ids = [user.id for user in g.user.following]
+        followers_ids = [user.id for user in g.user.followers]
+        messages = Message.query.filter((Message.user_id.in_(following_ids)) |
+        (Message.user_id.in_(followers_ids)) |
+        (Message.user_id == g.user.id)).order_by(Message.timestamp.desc()).limit(100).all()
 
         return render_template('home.html', messages=messages)
 
