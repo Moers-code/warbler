@@ -224,25 +224,26 @@ def profile():
         flash("Access unauthorized.", "danger")
         return redirect("/")
    
-    form = UserEditForm()
     user = g.user
+    form = UserEditForm(obj=user)
     if form.validate_on_submit():
         if User.authenticate(user.username, form.password.data):
-
             try:
                 user.username = form.username.data
                 user.email = form.email.data
                 user.image_url = form.image_url.data
                 user.header_image_url = form.header_image_url.data
                 user.bio = form.bio.data
+                user.location = form.location.data
 
                 db.session.commit()
-                g.user = user
+            # g.user = user
                 flash('Update Successful!')
                 return redirect(f'/users/{user.id}')
             except Exception as e:
                 return str(e)
         else:
+            db.session.rollback()
             flash('Wrong Credentials. Try inputing the correct username and password')
             return redirect('/')
     else:
@@ -361,7 +362,16 @@ def add_like(message_id):
             db.session.commit()
             return redirect('/')
 
-
+@app.route('/users/<int:user_id>/likes')
+def show_likes(user_id):
+    if g.user:
+        user = g.user
+        messages_liked = liked_messages = Message.query.join(Likes).filter(Likes.user_id == user_id).all()
+        print(user)
+        print(messages_liked)
+        return render_template('users/show_likes.html', messages_liked=messages_liked, user=user)
+    else:
+        return redirect('/')
 ##############################################################################
 # Turn off all caching in Flask
 #   (useful for dev; in production, this kind of stuff is typically

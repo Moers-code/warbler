@@ -31,8 +31,9 @@ class UserEditForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
     email = StringField('E-mail', validators=[DataRequired(), Email()])
     image_url = StringField('(Optional) Image URL', default="/static/images/default-pic.png")
-    header_image_url = StringField('Header Image')
+    header_image_url = StringField('Header Image', default='https://www.allaboutbirds.org/guide/assets/photo/297046671-1280px.jpg')
     bio = StringField('Bio')
+    location = StringField('Location')
     password = PasswordField('Password', validators=[DataRequired()])
 
         
